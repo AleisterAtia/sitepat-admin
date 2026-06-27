@@ -6,23 +6,32 @@ import Link from "next/link";
 
 import * as api from "@/lib/api";
 import { ApiError } from "@/lib/api";
-import type { Citizen, Commodity } from "@/lib/types";
-import { COMMODITIES, COMMODITY_LABEL } from "@/lib/types";
+import { useServices } from "@/lib/services-context";
+import type { Citizen, Service } from "@/lib/types";
 import { formatDate, currentPeriodWIB } from "@/lib/format";
-import { Alert, Button, Card, Field, Input, Select, Spinner } from "@/components/ui";
-import { EligibilityBadge } from "@/components/badges";
+import {
+  Alert,
+  Button,
+  Card,
+  Field,
+  Input,
+  Select,
+  Spinner,
+} from "@/components/ui";
+import { EligibilityBadge, ServiceKindBadge } from "@/components/badges";
 import { Modal } from "@/components/Modal";
 
 export default function CitizenDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { services } = useServices();
 
   const [citizen, setCitizen] = useState<Citizen | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [togglingElig, setTogglingElig] = useState(false);
-  const [quotaModal, setQuotaModal] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [quotaService, setQuotaService] = useState<Service | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,27 +49,47 @@ export default function CitizenDetailPage() {
     load();
   }, [load]);
 
-  async function toggleEligibility() {
+  const period = currentPeriodWIB();
+  // Layanan yang dikelola per-warga: aktif & butuh kelayakan (quota/eligibility).
+  const managed = services.filter((s) => s.is_active && s.kind !== "log");
+  const quotaServices = services.filter((s) => s.is_active && s.kind === "quota");
+
+  function effectiveEligible(s: Service): boolean {
+    const row = citizen?.eligibilities?.find((e) => e.service_id === s.id);
+    return row ? row.is_eligible : s.default_eligible;
+  }
+  function quotaFor(s: Service) {
+    return citizen?.quotas?.find(
+      (q) => q.service_id === s.id && q.period === period,
+    );
+  }
+
+  async function toggleEligibility(s: Service) {
     if (!citizen) return;
-    setTogglingElig(true);
+    setTogglingId(s.id);
     setNotice("");
     setError("");
     try {
-      const next = !citizen.is_eligible;
-      await api.setEligibility(citizen.id, next);
-      setCitizen({ ...citizen, is_eligible: next });
-      setNotice(next ? "Warga ditandai LAYAK menerima subsidi." : "Warga ditandai TIDAK LAYAK.");
+      const next = !effectiveEligible(s);
+      await api.setEligibility(citizen.id, {
+        service_code: s.code,
+        is_eligible: next,
+      });
+      await load();
+      setNotice(
+        `Kelayakan "${s.name}" diperbarui: ${next ? "LAYAK" : "TIDAK LAYAK"}.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memperbarui kelayakan");
     } finally {
-      setTogglingElig(false);
+      setTogglingId(null);
     }
   }
 
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Spinner className="h-8 w-8 text-blue-600" />
+        <Spinner className="h-8 w-8 text-emerald-600" />
       </div>
     );
   }
@@ -69,7 +98,7 @@ export default function CitizenDetailPage() {
     return (
       <div className="space-y-4">
         <Alert tone="error">{error || "Warga tidak ditemukan."}</Alert>
-        <Link href="/citizens" className="text-sm text-blue-600 hover:underline">
+        <Link href="/citizens" className="text-sm text-emerald-600 hover:underline">
           ← Kembali ke daftar warga
         </Link>
       </div>
@@ -78,71 +107,124 @@ export default function CitizenDetailPage() {
 
   return (
     <div className="space-y-5">
-      <Link href="/citizens" className="text-sm text-blue-600 hover:underline">
+      <Link href="/citizens" className="text-sm text-emerald-600 hover:underline">
         ← Kembali ke daftar warga
       </Link>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">{citizen.name}</h1>
-          <p className="font-mono text-sm text-slate-500">{citizen.nik}</p>
-        </div>
-        <EligibilityBadge eligible={citizen.is_eligible} />
+      <div>
+        <h1 className="text-xl font-semibold text-slate-800">{citizen.name}</h1>
+        <p className="font-mono text-sm text-slate-500">{citizen.nik}</p>
       </div>
 
       {notice && <Alert tone="success">{notice}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
 
       <Card className="p-5">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Informasi Warga</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+          Informasi Warga
+        </h2>
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
           <Info label="NIK" value={citizen.nik} mono />
           <Info label="NFC UID" value={citizen.nfc_uid} mono />
           <Info label="Nama" value={citizen.name} />
           <Info label="Terdaftar" value={formatDate(citizen.created_at)} />
         </dl>
-        <div className="mt-4 border-t border-slate-100 pt-4">
-          <Button
-            variant={citizen.is_eligible ? "danger" : "primary"}
-            loading={togglingElig}
-            onClick={toggleEligibility}
-          >
-            {citizen.is_eligible ? "Tandai Tidak Layak" : "Tandai Layak"}
-          </Button>
-        </div>
       </Card>
 
       <Card>
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-700">Kuota Subsidi</h2>
-          <Button className="px-3 py-1.5" onClick={() => setQuotaModal(true)}>
-            + Atur Kuota
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">
+              Kelayakan &amp; Kuota per Layanan
+            </h2>
+            <p className="text-xs text-slate-500">
+              Periode kuota berjalan: {period} (WIB)
+            </p>
+          </div>
+          {quotaServices.length > 0 && (
+            <Button
+              className="px-3 py-1.5"
+              onClick={() => setQuotaService(quotaServices[0])}
+            >
+              + Atur Kuota
+            </Button>
+          )}
         </div>
-        {!citizen.quotas || citizen.quotas.length === 0 ? (
+
+        {managed.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-slate-500">
-            Belum ada kuota yang diatur.
+            Belum ada layanan aktif yang memerlukan kelayakan. Tambahkan di menu
+            Layanan.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-                  <th className="px-5 py-2 font-medium">Komoditas</th>
-                  <th className="px-5 py-2 font-medium">Periode</th>
-                  <th className="px-5 py-2 font-medium">Total</th>
-                  <th className="px-5 py-2 font-medium">Sisa</th>
+                  <th className="px-5 py-2 font-medium">Layanan</th>
+                  <th className="px-5 py-2 font-medium">Kelayakan</th>
+                  <th className="px-5 py-2 font-medium">Kuota ({period})</th>
+                  <th className="px-5 py-2 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
-                {citizen.quotas.map((q) => (
-                  <tr key={q.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-5 py-2 text-slate-700">{COMMODITY_LABEL[q.commodity]}</td>
-                    <td className="px-5 py-2 font-mono text-slate-600">{q.period}</td>
-                    <td className="px-5 py-2 text-slate-700">{q.quota_total}</td>
-                    <td className="px-5 py-2 font-medium text-slate-800">{q.quota_remaining}</td>
-                  </tr>
-                ))}
+                {managed.map((s) => {
+                  const eligible = effectiveEligible(s);
+                  const q = quotaFor(s);
+                  return (
+                    <tr
+                      key={s.id}
+                      className="border-b border-slate-100 last:border-0"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="font-medium text-slate-800">{s.name}</div>
+                        <div className="mt-1">
+                          <ServiceKindBadge kind={s.kind} />
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <EligibilityBadge eligible={eligible} />
+                      </td>
+                      <td className="px-5 py-3">
+                        {s.kind === "quota" ? (
+                          q ? (
+                            <span className="text-slate-700">
+                              <span className="font-semibold text-slate-900">
+                                {q.quota_remaining}
+                              </span>{" "}
+                              / {q.quota_total}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              belum diatur
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex justify-end gap-3 whitespace-nowrap">
+                          <button
+                            onClick={() => toggleEligibility(s)}
+                            disabled={togglingId === s.id}
+                            className="text-sm font-medium text-emerald-600 hover:underline disabled:opacity-50"
+                          >
+                            {eligible ? "Tandai tidak layak" : "Tandai layak"}
+                          </button>
+                          {s.kind === "quota" && (
+                            <button
+                              onClick={() => setQuotaService(s)}
+                              className="text-sm font-medium text-slate-600 hover:underline"
+                            >
+                              Atur kuota
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -150,11 +232,12 @@ export default function CitizenDetailPage() {
       </Card>
 
       <SetQuotaModal
-        open={quotaModal}
+        service={quotaService}
         citizenId={citizen.id}
-        onClose={() => setQuotaModal(false)}
+        quotaServices={quotaServices}
+        onClose={() => setQuotaService(null)}
         onSaved={() => {
-          setQuotaModal(false);
+          setQuotaService(null);
           setNotice("Kuota berhasil disimpan.");
           load();
         }}
@@ -175,27 +258,42 @@ function Info({
   return (
     <div>
       <dt className="text-xs uppercase text-slate-500">{label}</dt>
-      <dd className={mono ? "font-mono text-slate-800" : "text-slate-800"}>{value}</dd>
+      <dd className={mono ? "font-mono text-slate-800" : "text-slate-800"}>
+        {value}
+      </dd>
     </div>
   );
 }
 
 function SetQuotaModal({
-  open,
+  service,
   citizenId,
+  quotaServices,
   onClose,
   onSaved,
 }: {
-  open: boolean;
+  service: Service | null;
   citizenId: string;
+  quotaServices: Service[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [commodity, setCommodity] = useState<Commodity>("LPG_3KG");
+  const [code, setCode] = useState("");
   const [period, setPeriod] = useState(currentPeriodWIB());
   const [total, setTotal] = useState("1");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (service) {
+      setCode(service.code);
+      setPeriod(currentPeriodWIB());
+      setTotal("1");
+      setError("");
+    }
+  }, [service]);
+
+  if (!service) return null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -211,7 +309,7 @@ function SetQuotaModal({
     }
     setSubmitting(true);
     try {
-      await api.setQuota(citizenId, { commodity, period, quota_total: qt });
+      await api.setQuota(citizenId, { service_code: code, period, quota_total: qt });
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Gagal menyimpan kuota.");
@@ -221,25 +319,25 @@ function SetQuotaModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Atur Kuota Subsidi">
+    <Modal open={!!service} onClose={onClose} title="Atur Kuota">
       <form onSubmit={onSubmit} className="space-y-4">
         {error && <Alert tone="error">{error}</Alert>}
-        <Field label="Komoditas" htmlFor="commodity">
+        <Field label="Layanan" htmlFor="q-service">
           <Select
-            id="commodity"
-            value={commodity}
-            onChange={(e) => setCommodity(e.target.value as Commodity)}
+            id="q-service"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
           >
-            {COMMODITIES.map((c) => (
-              <option key={c} value={c}>
-                {COMMODITY_LABEL[c]}
+            {quotaServices.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Periode" htmlFor="period" hint="Format YYYY-MM (WIB)">
+        <Field label="Periode" htmlFor="q-period" hint="Format YYYY-MM (WIB)">
           <Input
-            id="period"
+            id="q-period"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
             placeholder="2026-06"
@@ -248,11 +346,11 @@ function SetQuotaModal({
         </Field>
         <Field
           label="Total Kuota"
-          htmlFor="total"
+          htmlFor="q-total"
           hint="Menyetel total & mereset sisa kuota ke nilai ini"
         >
           <Input
-            id="total"
+            id="q-total"
             type="number"
             min={0}
             value={total}

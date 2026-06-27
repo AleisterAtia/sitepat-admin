@@ -1,7 +1,8 @@
 // Badge khusus domain SI-TEPAT, dipakai ulang di beberapa halaman.
 
 import { Badge } from "./ui";
-import type { Role, TxStatus } from "@/lib/types";
+import type { Role, ServiceKind, TxStatus } from "@/lib/types";
+import { SERVICE_KIND_LABEL } from "@/lib/types";
 
 export function TxStatusBadge({ status }: { status: TxStatus }) {
   return status === "success" ? (
@@ -33,4 +34,10 @@ export function RoleBadge({ role }: { role: Role }) {
   ) : (
     <Badge tone="amber">Petugas</Badge>
   );
+}
+
+// ServiceKindBadge menampilkan jenis layanan (quota/eligibility/log) dengan warna khas.
+export function ServiceKindBadge({ kind }: { kind: ServiceKind }) {
+  const tone = kind === "quota" ? "blue" : kind === "eligibility" ? "teal" : "gray";
+  return <Badge tone={tone}>{SERVICE_KIND_LABEL[kind]}</Badge>;
 }

@@ -38,8 +38,13 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm p-6">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-blue-700">SI-TEPAT</h1>
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-bold text-white shadow-sm">
+            SP
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            SI-TEPAT
+          </h1>
           <p className="mt-1 text-sm text-slate-500">Dashboard Admin</p>
         </div>
 

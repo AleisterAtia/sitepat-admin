@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import * as api from "@/lib/api";
 import type { TransactionParams } from "@/lib/api";
-import type { Commodity, Transaction, TxStatus } from "@/lib/types";
-import { COMMODITIES, COMMODITY_LABEL } from "@/lib/types";
+import { useServices, serviceName } from "@/lib/services-context";
+import type { Transaction, TxStatus } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 import { Alert, Button, Card, Field, Input, Select, Spinner } from "@/components/ui";
 import { TxStatusBadge } from "@/components/badges";
@@ -15,7 +15,7 @@ const LIMIT = 20;
 
 interface Filters {
   status: "" | TxStatus;
-  commodity: "" | Commodity;
+  service_code: string;
   merchant_name: string;
   from: string;
   to: string;
@@ -23,13 +23,14 @@ interface Filters {
 
 const EMPTY: Filters = {
   status: "",
-  commodity: "",
+  service_code: "",
   merchant_name: "",
   from: "",
   to: "",
 };
 
 export default function TransactionsPage() {
+  const { services, byCode } = useServices();
   const [input, setInput] = useState<Filters>(EMPTY);
   const [applied, setApplied] = useState<Filters>(EMPTY);
   const [page, setPage] = useState(1);
@@ -46,7 +47,7 @@ export default function TransactionsPage() {
         page,
         limit: LIMIT,
         status: applied.status || undefined,
-        commodity: applied.commodity || undefined,
+        service_code: applied.service_code || undefined,
         merchant_name: applied.merchant_name || undefined,
         from: applied.from || undefined,
         to: applied.to || undefined,
@@ -99,16 +100,16 @@ export default function TransactionsPage() {
                 <option value="rejected">Ditolak</option>
               </Select>
             </Field>
-            <Field label="Komoditas" htmlFor="f-commodity">
+            <Field label="Layanan" htmlFor="f-service">
               <Select
-                id="f-commodity"
-                value={input.commodity}
-                onChange={(e) => set("commodity", e.target.value as Filters["commodity"])}
+                id="f-service"
+                value={input.service_code}
+                onChange={(e) => set("service_code", e.target.value)}
               >
                 <option value="">Semua</option>
-                {COMMODITIES.map((c) => (
-                  <option key={c} value={c}>
-                    {COMMODITY_LABEL[c]}
+                {services.map((s) => (
+                  <option key={s.id} value={s.code}>
+                    {s.name}
                   </option>
                 ))}
               </Select>
@@ -129,12 +130,12 @@ export default function TransactionsPage() {
                 onChange={(e) => set("to", e.target.value)}
               />
             </Field>
-            <Field label="SPBU/Pangkalan" htmlFor="f-merchant">
+            <Field label="Lokasi/Outlet" htmlFor="f-merchant">
               <Input
                 id="f-merchant"
                 value={input.merchant_name}
                 onChange={(e) => set("merchant_name", e.target.value)}
-                placeholder="Nama SPBU…"
+                placeholder="Nama lokasi…"
               />
             </Field>
           </div>
@@ -154,7 +155,7 @@ export default function TransactionsPage() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-16">
-            <Spinner className="h-7 w-7 text-blue-600" />
+            <Spinner className="h-7 w-7 text-emerald-600" />
           </div>
         ) : items.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-500">
@@ -167,23 +168,34 @@ export default function TransactionsPage() {
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
                   <th className="px-5 py-3 font-medium">Waktu</th>
                   <th className="px-5 py-3 font-medium">NFC UID</th>
-                  <th className="px-5 py-3 font-medium">Komoditas</th>
+                  <th className="px-5 py-3 font-medium">Layanan</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Alasan</th>
-                  <th className="px-5 py-3 font-medium">Petugas/SPBU</th>
+                  <th className="px-5 py-3 font-medium">Lokasi/Outlet</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((tx) => (
-                  <tr key={tx.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <tr
+                    key={tx.id}
+                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                  >
                     <td className="px-5 py-3 whitespace-nowrap text-slate-600">
                       {formatDateTime(tx.created_at)}
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-slate-700">{tx.nfc_uid}</td>
-                    <td className="px-5 py-3 text-slate-700">{COMMODITY_LABEL[tx.commodity]}</td>
-                    <td className="px-5 py-3"><TxStatusBadge status={tx.status} /></td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-700">
+                      {tx.nfc_uid}
+                    </td>
+                    <td className="px-5 py-3 text-slate-700">
+                      {serviceName(byCode, tx.service_code)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <TxStatusBadge status={tx.status} />
+                    </td>
                     <td className="px-5 py-3 text-slate-600">{tx.reason || "-"}</td>
-                    <td className="px-5 py-3 text-slate-600">{tx.merchant_name || "-"}</td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {tx.merchant_name || "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -192,7 +204,12 @@ export default function TransactionsPage() {
         )}
         {!loading && total > 0 && (
           <div className="border-t border-slate-200 px-3">
-            <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+            <Pagination
+              page={page}
+              limit={LIMIT}
+              total={total}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </Card>

@@ -58,7 +58,7 @@ export default function UsersPage() {
 
       <form onSubmit={onSearch} className="flex gap-2">
         <Input
-          placeholder="Cari username atau nama SPBU…"
+          placeholder="Cari username atau lokasi…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="max-w-md"
@@ -87,7 +87,7 @@ export default function UsersPage() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-16">
-            <Spinner className="h-7 w-7 text-blue-600" />
+            <Spinner className="h-7 w-7 text-emerald-600" />
           </div>
         ) : items.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-500">
@@ -100,7 +100,7 @@ export default function UsersPage() {
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
                   <th className="px-5 py-3 font-medium">Username</th>
                   <th className="px-5 py-3 font-medium">Role</th>
-                  <th className="px-5 py-3 font-medium">Nama SPBU/Pangkalan</th>
+                  <th className="px-5 py-3 font-medium">Lokasi/Outlet</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Dibuat</th>
                   <th className="px-5 py-3 font-medium"></th>
@@ -117,7 +117,7 @@ export default function UsersPage() {
                     <td className="px-5 py-3 text-right">
                       <button
                         onClick={() => setEditing(u)}
-                        className="text-sm font-medium text-blue-600 hover:underline"
+                        className="text-sm font-medium text-emerald-600 hover:underline"
                       >
                         Edit
                       </button>
@@ -243,12 +243,12 @@ function CreateUserModal({
           </Select>
         </Field>
         {role === "merchant" && (
-          <Field label="Nama SPBU/Pangkalan" htmlFor="cu-merchant">
+          <Field label="Lokasi/Outlet" htmlFor="cu-merchant">
             <Input
               id="cu-merchant"
               value={merchantName}
               onChange={(e) => setMerchantName(e.target.value)}
-              placeholder="SPBU 34-401 Merdeka"
+              placeholder="mis. SPBU 34-401 / Klinik Sehat"
             />
           </Field>
         )}
@@ -328,7 +328,7 @@ function EditUserModal({
           </Select>
         </Field>
         {role === "merchant" && (
-          <Field label="Nama SPBU/Pangkalan" htmlFor="eu-merchant">
+          <Field label="Lokasi/Outlet" htmlFor="eu-merchant">
             <Input
               id="eu-merchant"
               value={merchantName}
