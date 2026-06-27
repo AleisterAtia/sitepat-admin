@@ -8,7 +8,6 @@ import { ApiError } from "@/lib/api";
 import type { Citizen } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { Alert, Button, Card, Field, Input, Spinner } from "@/components/ui";
-import { EligibilityBadge } from "@/components/badges";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
 
@@ -85,7 +84,7 @@ export default function CitizensPage() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-16">
-            <Spinner className="h-7 w-7 text-blue-600" />
+            <Spinner className="h-7 w-7 text-emerald-600" />
           </div>
         ) : items.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-500">
@@ -99,7 +98,6 @@ export default function CitizensPage() {
                   <th className="px-5 py-3 font-medium">NIK</th>
                   <th className="px-5 py-3 font-medium">Nama</th>
                   <th className="px-5 py-3 font-medium">NFC UID</th>
-                  <th className="px-5 py-3 font-medium">Kelayakan</th>
                   <th className="px-5 py-3 font-medium">Terdaftar</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
@@ -110,10 +108,9 @@ export default function CitizensPage() {
                     <td className="px-5 py-3 font-mono text-xs text-slate-700">{c.nik}</td>
                     <td className="px-5 py-3 font-medium text-slate-800">{c.name}</td>
                     <td className="px-5 py-3 font-mono text-xs text-slate-600">{c.nfc_uid}</td>
-                    <td className="px-5 py-3"><EligibilityBadge eligible={c.is_eligible} /></td>
                     <td className="px-5 py-3 text-slate-600">{formatDate(c.created_at)}</td>
                     <td className="px-5 py-3 text-right">
-                      <Link href={`/citizens/${c.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                      <Link href={`/citizens/${c.id}`} className="text-sm font-medium text-emerald-600 hover:underline">
                         Detail
                       </Link>
                     </td>

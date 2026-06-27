@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SI-TEPAT — Dashboard Admin",
   description:
-    "Dashboard admin SI-TEPAT: kelola warga, kuota subsidi, petugas, dan monitoring transaksi.",
+    "Dashboard admin SI-TEPAT: kelola warga, layanan, kelayakan & kuota, petugas, dan monitoring transaksi berbasis tap e-KTP.",
 };
 
 export default function RootLayout({

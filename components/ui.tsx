@@ -17,10 +17,11 @@ export function cn(...parts: Array<string | false | null | undefined>): string {
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300",
+  primary:
+    "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:bg-emerald-300",
   secondary:
     "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 disabled:opacity-60",
-  danger: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300",
+  danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:bg-red-300",
   ghost: "bg-transparent text-slate-600 hover:bg-slate-100 disabled:opacity-60",
 };
 
@@ -38,7 +39,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 disabled:cursor-not-allowed",
         VARIANTS[variant],
         className,
       )}
@@ -60,7 +61,7 @@ export function Input({
   return (
     <input
       className={cn(
-        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100",
+        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100",
         className,
       )}
       {...props}
@@ -76,7 +77,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100",
+        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100",
         className,
       )}
       {...props}
@@ -115,7 +116,14 @@ export function Field({
 
 // --- Badge ---
 
-type BadgeTone = "green" | "red" | "blue" | "gray" | "amber";
+type BadgeTone =
+  | "green"
+  | "red"
+  | "blue"
+  | "gray"
+  | "amber"
+  | "emerald"
+  | "teal";
 
 const TONES: Record<BadgeTone, string> = {
   green: "bg-green-100 text-green-800",
@@ -123,6 +131,8 @@ const TONES: Record<BadgeTone, string> = {
   blue: "bg-blue-100 text-blue-800",
   gray: "bg-slate-100 text-slate-700",
   amber: "bg-amber-100 text-amber-800",
+  emerald: "bg-emerald-100 text-emerald-800",
+  teal: "bg-teal-100 text-teal-800",
 };
 
 export function Badge({
@@ -183,7 +193,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-slate-200 bg-white shadow-sm",
+        "rounded-xl border border-slate-200 bg-white shadow-sm",
         className,
       )}
     >

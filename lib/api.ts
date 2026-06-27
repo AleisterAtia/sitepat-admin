@@ -8,11 +8,12 @@
 import type {
   AuthUser,
   Citizen,
-  Commodity,
   LoginResponse,
   Paginated,
   Role,
-  SubsidyQuota,
+  Service,
+  ServiceKind,
+  ServiceQuota,
   Transaction,
   TxStatus,
   User,
@@ -154,19 +155,57 @@ export function registerCitizen(input: {
   });
 }
 
-export function setEligibility(id: string, is_eligible: boolean) {
-  return apiFetch<{ id: string; is_eligible: boolean }>(
+// setEligibility menetapkan kelayakan warga. Bila service_code dikosongkan, backend
+// menerapkannya ke semua layanan aktif yang membutuhkan kelayakan (quota/eligibility).
+export function setEligibility(
+  id: string,
+  input: { is_eligible: boolean; service_code?: string },
+) {
+  return apiFetch<{ id: string; service_code: string; is_eligible: boolean }>(
     `/api/v1/admin/citizens/${id}/eligibility`,
-    { method: "PATCH", body: JSON.stringify({ is_eligible }) },
+    { method: "PATCH", body: JSON.stringify(input) },
   );
 }
 
 export function setQuota(
   id: string,
-  input: { commodity: Commodity; period?: string; quota_total: number },
+  input: { service_code: string; period?: string; quota_total: number },
 ) {
-  return apiFetch<SubsidyQuota>(`/api/v1/admin/citizens/${id}/quotas`, {
+  return apiFetch<ServiceQuota>(`/api/v1/admin/citizens/${id}/quotas`, {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// --- Layanan (services) ---
+
+export function listServices() {
+  return apiFetch<{ data: Service[] }>("/api/v1/admin/services");
+}
+
+export function createService(input: {
+  code: string;
+  name: string;
+  kind: ServiceKind;
+  default_eligible: boolean;
+}) {
+  return apiFetch<Service>("/api/v1/admin/services", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateService(
+  id: string,
+  input: {
+    name?: string;
+    kind?: ServiceKind;
+    default_eligible?: boolean;
+    is_active?: boolean;
+  },
+) {
+  return apiFetch<Service>(`/api/v1/admin/services/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   });
 }
@@ -208,7 +247,7 @@ export function updateUser(
 
 export type TransactionParams = {
   status?: TxStatus;
-  commodity?: Commodity;
+  service_code?: string;
   user_id?: string;
   merchant_name?: string;
   from?: string; // YYYY-MM-DD (WIB)
